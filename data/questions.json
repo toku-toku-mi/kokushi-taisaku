@@ -1,1 +1,21 @@
-
+[
+  {
+    "id": "Q1",
+    "category": "生理",
+    "subcategory": "犬",
+    "question": "犬の正常体温として最も適切なのはどれか。",
+    "choices": [
+      "34.5〜35.5℃",
+      "36.0〜37.0℃",
+      "37.5〜39.2℃",
+      "40.0〜41.0℃"
+    ],
+    "correct": 2,
+    "explanation": "犬の正常体温は一般的に37.5〜39.2℃とされる。39.5℃以上になると発熱の可能性がある。",
+    "reference": [
+      "Merck Veterinary Manual"
+    ],
+    "difficulty": "basic",
+    "tags": ["犬", "生理"]
+  }
+]
