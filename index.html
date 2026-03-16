@@ -1,1 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>獣医国家試験対策クイズ</title>
+  <style>
+    * { box-sizing: border-box; }
 
+    body {
+      margin: 0;
+      font-family: "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: #f6f8fb;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    .sub {
+      color: #6b7280;
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+
+    .progress {
+      display: inline-block;
+      background: #eef2f7;
+      color: #374151;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .question-box {
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 18px;
+      line-height: 1.8;
+    }
+
+    .choice {
+      width: 100%;
+      text-align: left;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 14px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.2s;
+      color: #111827;
+    }
+
+    .choice:hover {
+      background: #f9fafb;
+    }
+
+    .choice.selected {
+      border-color: #111827;
+      background: #eef2ff;
+    }
+
+    .choice.correct {
+      border-color: #86efac;
+      background: #dcfce7;
+    }
+
+    .choice.wrong {
+      border-color: #fda4af;
+      background: #ffe4e6;
+    }
+
+    .choice.disabled {
+      cursor: default;
+      opacity: 0.96;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button.action {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #111827;
+      color: white;
+    }
+
+    .secondary {
+      background: white;
+      color: #111827;
+      border: 1px solid #d1d5db;
+    }
+
+    .primary:disabled,
+    .secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .result, .explanation, .reference-box, .loading-box {
+      margin-top: 18px;
+      border-radius: 16px;
+      padding: 18px;
+      line-height: 1.8;
+    }
+
+    .result {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+
+    .explanation {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    .reference-box {
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+    }
+
+    .loading-box {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .score {
+      font-size: 22px;
+      margin: 18px 0;
+    }
+
+    .meta {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    ul.ref-list {
+      margin: 8px 0 0 18px;
+      padding: 0;
+    }
+
+    .error {
+      color: #b91c1c;
+      font-weight: bold;
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        margin: 16px auto;
+        padding: 12px;
+      }
+
+      .card {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+
+      button.action {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>獣医国家試験対策クイズ</h1>
+      <div class="sub">
+        4択から選んで、「回答を見る」で正誤表示、「解説を見る」で解説を確認できます。
+        問題は <code>data/questions.json</code> から読み込みます。
+      </div>
+
+      <div id="loading-box" class="loading-box">
+        問題データを読み込み中です…
+      </div>
+
+      <div id="quiz-area" class="hidden">
+        <div class="progress" id="progress"></div>
+        <div id="question-title" style="font-weight: bold; margin-bottom: 10px;"></div>
+        <div class="meta" id="question-meta"></div>
+        <div class="question-box" id="question-text"></div>
+        <div id="choices"></div>
+
+        <div class="buttons">
+          <button class="action secondary" id="prev-btn">前の問題へ</button>
+          <button class="action primary" id="answer-btn" disabled>回答を見る</button>
+          <button class="action secondary hidden" id="explanation-btn">解説を見る</button>
+          <button class="action secondary hidden" id="reference-btn">参考を見る</button>
+          <button class="action primary hidden" id="next-btn">次の問題へ</button>
+        </div>
+
+        <div class="result hidden" id="result-box"></div>
+        <div class="explanation hidden" id="explanation-box"></div>
+        <div class="reference-box hidden" id="reference-box"></div>
+      </div>
+
+      <div id="finish-area" class="hidden">
+        <h2>結果発表</h2>
+        <div class="score" id="score-text"></div>
+        <button class="action primary" id="restart-btn">もう一度はじめる</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let questions = [];
+    let questionStates = [];
+    let currentIndex = 0;
+
+    const loadingBox = document.getElementById("loading-box");
+    const quizArea = document.getElementById("quiz-area");
+    const finishArea = document.getElementById("finish-area");
+
+    const progress = document.getElementById("progress");
+    const questionTitle = document.getElementById("question-title");
+    const questionMeta = document.getElementById("question-meta");
+    const questionText = document.getElementById("question-text");
+    const choicesEl = document.getElementById("choices");
+
+    const prevBtn = document.getElementById("prev-btn");
+    const answerBtn = document.getElementById("answer-btn");
+    const explanationBtn = document.getElementById("explanation-btn");
+    const referenceBtn = document.getElementById("reference-btn");
+    const nextBtn = document.getElementById("next-btn");
+
+    const resultBox = document.getElementById("result-box");
+    const explanationBox = document.getElementById("explanation-box");
+    const referenceBox = document.getElementById("reference-box");
+
+    const scoreText = document.getElementById("score-text");
+    const restartBtn = document.getElementById("restart-btn");
+
+    function createInitialStates() {
+      return questions.map(() => ({
+        selectedIndex: null,
+        answered: false,
+        explanationOpen: false,
+        referenceOpen: false,
+        isCorrect: false
+      }));
+    }
+
+    function getScore() {
+      return questionStates.filter(state => state.answered && state.isCorrect).length;
+    }
+
+    function renderQuestion() {
+      const q = questions[currentIndex];
+      const state = questionStates[currentIndex];
+
+      progress.textContent = `${currentIndex + 1} / ${questions.length}`;
+      questionTitle.textContent = q.id ? `${q.id}` : `第${currentIndex + 1}問`;
+
+      const metaParts = [];
+      if (q.category) metaParts.push(`分野: ${q.category}`);
+      if (q.subcategory) metaParts.push(`小分類: ${q.subcategory}`);
+      if (q.difficulty) {
+        const diffMap = {
+          basic: "基礎",
+          standard: "標準",
+          advanced: "応用"
+        };
+        metaParts.push(`難易度: ${diffMap[q.difficulty] || q.difficulty}`);
+      }
+      questionMeta.textContent = metaParts.join(" / ");
+
+      questionText.textContent = q.question;
+      choicesEl.innerHTML = "";
+
+      prevBtn.disabled = currentIndex === 0;
+      answerBtn.disabled = state.selectedIndex === null || state.answered;
+      explanationBtn.classList.toggle("hidden", !state.answered);
+      referenceBtn.classList.toggle("hidden", !state.answered);
+      nextBtn.classList.toggle("hidden", !state.answered);
+      nextBtn.textContent = currentIndex === questions.length - 1 ? "結果を見る" : "次の問題へ";
+
+      if (state.answered) {
+        resultBox.classList.remove("hidden");
+        resultBox.innerHTML = state.isCorrect
+          ? `<strong>正解です！</strong><br>正解：${String.fromCharCode(65 + q.correct)}. ${q.choices[q.correct]}`
+          : `<strong>不正解です</strong><br>正解：${String.fromCharCode(65 + q.correct)}. ${q.choices[q.correct]}`;
+      } else {
+        resultBox.classList.add("hidden");
+        resultBox.innerHTML = "";
+      }
+
+      explanationBox.innerHTML = `<strong>解説</strong><br>${q.explanation || "解説はまだありません。"}`;
+      explanationBox.classList.toggle("hidden", !state.explanationOpen);
+
+      if (state.explanationOpen) {
+        explanationBtn.textContent = "解説を閉じる";
+      } else {
+        explanationBtn.textContent = "解説を見る";
+      }
+      if (!state.answered) {
+        explanationBtn.textContent = "解説を見る";
+      }
+
+      if (q.reference && q.reference.length > 0) {
+        referenceBox.innerHTML = `
+          <strong>参考</strong>
+          <ul class="ref-list">
+            ${q.reference.map(ref => `<li>${ref}</li>`).join("")}
+          </ul>
+        `;
+      } else {
+        referenceBox.innerHTML = `<strong>参考</strong><br>参考文献情報はまだありません。`;
+      }
+
+      referenceBox.classList.toggle("hidden", !state.referenceOpen);
+
+      if (state.referenceOpen) {
+        referenceBtn.textContent = "参考を閉じる";
+      } else {
+        referenceBtn.textContent = "参考を見る";
+      }
+      if (!state.answered) {
+        referenceBtn.textContent = "参考を見る";
+      }
+
+      q.choices.forEach((choice, index) => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.innerHTML = `<strong>${String.fromCharCode(65 + index)}.</strong> ${choice}`;
+
+        if (state.selectedIndex === index && !state.answered) {
+          btn.classList.add("selected");
+        }
+
+        if (state.answered) {
+          btn.classList.add("disabled");
+          if (index === q.correct) {
+            btn.classList.add("correct");
+          }
+          if (state.selectedIndex === index && index !== q.correct) {
+            btn.classList.add("wrong");
+          }
+        } else {
+          btn.addEventListener("click", () => {
+            questionStates[currentIndex].selectedIndex = index;
+            renderQuestion();
+          });
+        }
+
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    function showResult() {
+      quizArea.classList.add("hidden");
+      finishArea.classList.remove("hidden");
+      const score = getScore();
+      scoreText.textContent = `${questions.length}問中 ${score}問正解！（正答率 ${Math.round(score / questions.length * 100)}%）`;
+    }
+
+    async function loadQuestions() {
+      try {
+        const response = await fetch("./data/questions.json");
+        if (!response.ok) {
+          throw new Error("questions.json を読み込めませんでした。");
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error("questions.json に問題が入っていません。");
+        }
+
+        questions = data;
+        questionStates = createInitialStates();
+
+        loadingBox.classList.add("hidden");
+        quizArea.classList.remove("hidden");
+        renderQuestion();
+      } catch (error) {
+        loadingBox.innerHTML = `<div class="error">読み込みエラー: ${error.message}</div>
+        <div style="margin-top:8px;">data/questions.json の形式を確認してください。</div>`;
+      }
+    }
+
+    answerBtn.addEventListener("click", () => {
+      const q = questions[currentIndex];
+      const state = questionStates[currentIndex];
+
+      if (state.selectedIndex === null || state.answered) return;
+
+      state.answered = true;
+      state.isCorrect = state.selectedIndex === q.correct;
+      renderQuestion();
+    });
+
+    explanationBtn.addEventListener("click", () => {
+      const state = questionStates[currentIndex];
+      state.explanationOpen = !state.explanationOpen;
+      renderQuestion();
+    });
+
+    referenceBtn.addEventListener("click", () => {
+      const state = questionStates[currentIndex];
+      state.referenceOpen = !state.referenceOpen;
+      renderQuestion();
+    });
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex === 0) return;
+      currentIndex--;
+      renderQuestion();
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex === questions.length - 1) {
+        showResult();
+      } else {
+        currentIndex++;
+        renderQuestion();
+      }
+    });
+
+    restartBtn.addEventListener("click", () => {
+      currentIndex = 0;
+      questionStates = createInitialStates();
+      finishArea.classList.add("hidden");
+      quizArea.classList.remove("hidden");
+      renderQuestion();
+    });
+
+    loadQuestions();
+  </script>
+</body>
+</html>
